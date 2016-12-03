@@ -2,11 +2,6 @@
 open System
 open System.IO
 
-let input = 
-    File.ReadAllText "./input.txt" 
-    |> (fun (s:string) -> s.Split([|","|], StringSplitOptions.RemoveEmptyEntries))
-    |> Array.map (fun i -> i.Trim())
-
 type Turn = 
     | Right
     | Left
@@ -15,6 +10,14 @@ type BlocksForward = int
 
 type Instruction = Turn * BlocksForward 
 
+type Direction =
+    | North
+    | South
+    | West
+    | East
+
+
+type Position = int * int * Direction
 let parseInstruction (value:string) =
         let turn =
             match value.ToCharArray() |> Array.head with
@@ -26,18 +29,13 @@ let parseInstruction (value:string) =
         (turn, forward)
     
 let instructions = 
-    input
-    |> Array.map parseInstruction
+    File.ReadAllText (__SOURCE_DIRECTORY__ + "/input.txt") 
+    |> (fun (s:string) -> s.Split([|","|], StringSplitOptions.RemoveEmptyEntries))
+    |> Array.map ((fun i -> i.Trim()) >> parseInstruction)
 
-type Direction =
-    | North
-    | South
-    | West
-    | East
 
-type Location = int * int
-type Position = Location * Direction
 
+// Please replace with circular data structure
 let moveLeft direction =
     match direction with
         | North -> West
@@ -64,8 +62,41 @@ let move position instruction =
         | South -> (x, y - forward, newDirection)
         | East -> (x + forward, y, newDirection)
 
-let endPosition = instructions |> Array.fold move (0, 0, North)
-let (x, y, _) = endPosition 
-let distanceInBlocks  = Math.Abs x + Math.Abs y
+let (x, y, _) = instructions |> Array.fold move (0, 0, North)
 
-printfn "Headquotes are %i blocks away." distanceInBlocks
+let distanceInBlocks (x:int) (y:int) = Math.Abs x + Math.Abs y
+
+printfn "Headquarters are %i blocks away, at (%i, %i)." (distanceInBlocks x y) x y
+
+// For the love of god, there has to be a better solution than this one ?!
+let traversePath x1 y1 x2 y2 =
+    match 1 with
+    | i when x1 = x2 && y1 <= y2 -> [y1..y2] |> List.map (fun i -> (x1, i))
+    | i when x1 = x2 && y1 > y2 -> [y2..y1] |> List.map (fun i -> (x1, i)) |> List.rev
+    | i when y1 = y2 && x1 <= x2 -> [x1..x2] |> List.map (fun i -> (i, y1))
+    | i when y1 = y2 && x1 > x2 -> [x2..x1] |> List.map (fun i -> (i, y1)) |> List.rev
+    | _ -> failwith "not supported path"
+ 
+let rec getFirstVisitedTwice position memory instructions =
+    let (x', y', _) = position 
+
+    let newPosition =
+        move position (Array.head instructions)
+
+    let (x, y, _) = newPosition
+    
+    let path = List.tail (traversePath x' y' x y)
+    let crossPath = path |> List.tryFind (fun i -> List.contains i memory)
+
+    match crossPath with 
+        | Some i -> 
+            i
+        | None ->
+            getFirstVisitedTwice newPosition (List.concat [memory; path]) (Array.tail instructions) 
+
+let (x2, y2) = getFirstVisitedTwice (0, 0, North) [(0, 0)] instructions
+
+printfn "On other hand, Headquarters are %i blocks away, at (%i, %i)." (distanceInBlocks x2 y2) x2 y2
+
+
+
