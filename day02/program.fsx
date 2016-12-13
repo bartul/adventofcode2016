@@ -12,6 +12,7 @@ type Instruction =
     | Left
     | Right
     | PressKey
+
 let parseInstruction value =
     match value with
     | 'U' -> Up
@@ -28,7 +29,7 @@ let ensurePressKeyOnEnd value =
     else    
         value
 
-let instructions = instructionsText.ToCharArray() |> ensurePressKeyOnEnd |> Array.map parseInstruction 
+let instructions = instructionsText.ToCharArray() |> ensurePressKeyOnEnd |> Array.toList |> List.map parseInstruction 
 
 type Button = | B1 | B2 | B3 | B4 | B5 | B6 | B7 | B8 | B9
 
@@ -72,7 +73,7 @@ let rec doit currentButton instructions code =
         doit nextButton tail (if head = PressKey then currentButton::code else code)
 
 
-let code = doit B5 (instructions |> Array.toList) List.empty
+let code = doit B5 instructions List.empty
 printfn "Code is %A" (code |> List.rev)
 
 type Button2 = | B1 | B2 | B3 | B4 | B5 | B6 | B7 | B8 | B9 | BA | BB | BC | BD
@@ -124,5 +125,5 @@ let rec doit2 currentButton instructions code =
         let nextButton = move2 currentButton (List.head instructions) 
         doit2 nextButton tail (if head = PressKey then currentButton::code else code)
 
-let code2 = doit2 B5 (instructions |> Array.toList) List.empty
+let code2 = doit2 B5 instructions List.empty
 printfn "On the second hand code is %A" (code2 |> List.rev)
